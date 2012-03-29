@@ -1,0 +1,13 @@
+Address = <%= @ipaddress %>
+
+Cipher = <%= @cipher %>
+
+Digest = <%= @digest %>
+
+Compression = <%= @compression %>
+
+<% @subnets.each do |subnet| -%>
+Subnet = <%= subnet %>
+<% end -%>
+
+<%= @public_key %>
