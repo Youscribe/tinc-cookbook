@@ -1,9 +1,3 @@
-#default[:tinc][:net] = [ "vpn" ]
-#default[:tinc][:net].inspect
-
-default[:tinc][:net][:vpn][:internal_ipaddress] = "192.168.55.12"
-default[:tinc][:net][:vpn][:subnets] = [ "192.168.55.0/24" ]
-
 default[:tinc][:net][:default][:device] = "/dev/net/tun"
 default[:tinc][:net][:default][:interface] = "tun0"
 default[:tinc][:net][:default][:bind_to] = "eth0"
