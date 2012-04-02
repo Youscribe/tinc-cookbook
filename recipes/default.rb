@@ -103,7 +103,7 @@ node[:tinc][:net].each do |network, conf|
 				:cipher => net.has_key?("cipher") ? net[:cipher] : matchingdefault[:cipher],
 				:digest => net.has_key?("digest") ? net[:digest] : matchingdefault[:digest],
 				:compression => net.has_key?("compression") ? net[:compression] : matchingdefault[:compression],
-				:subnets => net[:subnets],
+				:subnets => net.has_key?("subnets") ? net[:subnets] : [ net[:internal_ipaddress] + "/32" ]
 				:public_key => net[:public_key]
 			)
 		end
