@@ -35,7 +35,7 @@ if node[:platform] == "ubuntu" and node[:platform_version].to_f >= 9.04
 end	
 
 # we don't need to edit nets.boot if we use /etc/network/interfaces
-if ! node[:recipes][:network_interfaces]
+if ! node[:recipes].include?("network_interfaces")
   template "/etc/tinc/nets.boot" do
   	source "nets.boot.erb"
   	owner "root"
@@ -66,12 +66,12 @@ node[:tinc][:net].each do |network, conf|
 		owner "root"
 		group "root"
 		variables(
-			:hosts_ConnectTo => conf[:hosts_ConnectTo] or Chef::Tinc.search_hosts_ConnectTo(network),
-			:device => conf[:device] or netdefault[:device],
-			:interface => conf[:interface] or netdefault[:interface],
-			:bind_to => conf[:bind_to] or netdefault[:bind_to],
-			:mode => conf[:mode] or netdefault[:mode],
-			:name => conf[:name] or netdefault[:name]
+			:hosts_ConnectTo => Tinc.value(:hosts_ConnectTo, network, node),
+			:device => Tinc.value(:device, network, node),
+			:interface => Tinc.value(:interface, network, node),
+			:bind_to => Tinc.value(:bind_to, network, node),
+			:mode => Tinc.value(:mode, network, node),
+			:name => Tinc.value(:name, network, node)
 		)
 		notifies(:reload, "service[tinc-network-#{network}]")
 	end
@@ -90,35 +90,35 @@ node[:tinc][:net].each do |network, conf|
 			node.save
 		end
 		# TODO generate with specif BITS
-		notifies(:reload, "service[tinc]")
+#		notifies(:reload, "service[tinc]")
 		not_if { conf.has_key?(:public_key) }
 	end
 
-	search(:node, "tinc_net:#{network}") do |matching_node|
+	search(:node, "tinc_net:#{network} AND recipes:tinc") do |matching_node|
 		net = matching_node[:tinc][:net][network]
 		matchingdefault = matching_node[:tinc][:net][:default]
-		netname = net[:name] or matchingdefault[:name]
+		netname = Tinc.value(:name, network, matching_node)
 		template "/etc/tinc/#{network}/hosts/#{netname}" do
 			source "host.erb"
 			mode "0644"
 			owner "root"
 			group "root"
 			variables(
-				:ipaddress => net[:external_ipaddress] or node[:ipaddress],
-				:cipher => net[:cipher] or matchingdefault[:cipher],
-				:digest => net[:digest] or matchingdefault[:digest],
-				:compression => net[:compression] or matchingdefault[:compression],
-				:subnets => net[:subnets] or [ net[:internal_ipaddress] + "/32" ]
+				:ipaddress => Tinc.value(:name, network, matching_node),
+				:cipher => Tinc.value(:name, network, matching_node),
+				:digest => Tinc.value(:name, network, matching_node),
+				:compression => Tinc.value(:name, network, matching_node),
+				:subnets => Tinc.value(:subnets, network, matching_node),
 				:public_key => net[:public_key]
 			)
 		end
 	end
 
-	if node[:recipes][:network_interfaces]
-	  network_interfaces conf[:interface] or netdefault[:interface] do
-	    target conf[:internal_ipaddress]
-	    mask conf[:internal_netmask] or netdefault[:internal_netmask]
-	    custom { "tinc-net" => network }
+	if node[:recipes].include?(:network_interfaces)
+	  network_interfaces Tinc.value(:interface, network, matching_node) do
+	    target Tinc.value(:internal_ipaddress, network, node)
+	    mask Tinc.value(:internal_netmask, network, node)
+	    custom "tinc-net"   # { 'tinc-net' => "#{network}" }
 	  end
 	else
 	  service "tinc-network-#{network}" do
@@ -133,9 +133,9 @@ node[:tinc][:net].each do |network, conf|
   		action [:start]
   	end
   
-  	ifconfig conf[:internal_ipaddress] do
-  		device conf[:interface] or netdefault[:interface]
-  		mask conf[:internal_netmask] or netdefault[:internal_netmask]
+  	ifconfig Tinc.value(:internal_ipaddress, network, node) do
+  		device Tinc.value(:interface, network, node)
+  		mask Tinc.value(:internal_netmask, network, node)
   		# old command
   		#command "ifconfig #{net[:interface]} #{net[:internal_ipaddress} #{net[:subnets][0]}"
   		action :nothing
