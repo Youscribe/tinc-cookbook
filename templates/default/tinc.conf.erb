@@ -4,9 +4,13 @@ ConnectTo = <%= host %>
 
 Device = <%= @device %>
 
-Interface = <%= @interface %>
-
+<% if @external_ipaddress -%>
+BindToAddress = <%= @external_ipaddress %>
+<% elsif %>
 BindToInterface = <%= @bind_to %>
+<% end -%>
+
+Interface = <%= @interface %>
 
 Mode = <%= @mode %>
 

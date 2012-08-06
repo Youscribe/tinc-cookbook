@@ -10,4 +10,8 @@ Compression = <%= @compression %>
 Subnet = <%= subnet %>
 <% end -%>
 
+<% if @tcponly -%>
+TCPonly = yes
+<% end -%>
+
 <%= @public_key %>
