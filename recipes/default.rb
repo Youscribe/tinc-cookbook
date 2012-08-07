@@ -61,20 +61,23 @@ node['tinc']['net'].each do |network, conf|
 
 	databagItem = search("tinc_#{network}", 'id:' + node.name.gsub(".","DOT")).first
 	
-	# If databag doen't exist, we create it with default values
-	if databagItem == nil
-		databagItemIdeal = {
-			"id" => node.name.gsub(".","DOT"),
-			"name" => Tinc.attribute_value('name', network, node),
-			"external_ipaddress" => Tinc.attribute_value('external_ipaddress', network, node),
-			"subnets" => Tinc.attribute_value('subnets', network, node),
-			"internal_ipaddress" => Tinc.attribute_value('internal_ipaddress', network, node),
-			"public_key" => Tinc.attribute_value('public_key',network, node)
-		}
-		databagItem = Chef::DataBagItem.new
-		databagItem.data_bag("tinc_" + network)
-		databagItem.raw_data = databagItemIdeal
-		databagItem.save
+	# If databag doesn't exist, we create it with default values
+	ruby_block "create databagItem" do
+		block do
+			databagItemIdeal = {
+				"id" => node.name.gsub(".","DOT"),
+				"name" => Tinc.attribute_value('name', network, node),
+				"external_ipaddress" => Tinc.attribute_value('external_ipaddress', network, node),
+				"subnets" => Tinc.attribute_value('subnets', network, node),
+				"internal_ipaddress" => Tinc.attribute_value('internal_ipaddress', network, node),
+				"public_key" => Tinc.attribute_value('public_key',network, node)
+			}
+			databagItem = Chef::DataBagItem.new
+			databagItem.data_bag("tinc_" + network)
+			databagItem.raw_data = databagItemIdeal
+			databagItem.save
+		end
+		only_if { databagItem == nil }
 	end
 
 	directory "/etc/tinc/#{network}/hosts" do
