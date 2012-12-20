@@ -40,7 +40,7 @@ if ! node['recipes'].include?("network_interfaces")
     group "root"
     mode "0644"
     variables(
-      :networks => node[:tinc][:net].keys.reject do |key| key == "default" end
+      :networks => node['tinc']['net'].keys.reject do |key| key == "default" end
     )
   end
 else
