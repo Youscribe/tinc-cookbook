@@ -58,25 +58,25 @@ end
 node['tinc']['net'].each do |network, conf|
   next if network == "default"
 
-  databagItem = search("tinc_#{network}", 'id:' + node.name.gsub(".","DOT")).first
-  # If databag doesn't exist, we create it with default values
-  ruby_block "create databagItem" do
-    block do
-      databagItemIdeal = {
-        "id" => node.name.gsub(".","DOT"),
-        "name" => Tinc.attribute_value('name', network, node),
-        "external_ipaddress" => Tinc.attribute_value('external_ipaddress', network, node),
-        "subnets" => Tinc.attribute_value('subnets', network, node),
-        "internal_ipaddress" => Tinc.attribute_value('internal_ipaddress', network, node),
-        "public_key" => Tinc.attribute_value('public_key',network, node)
-      }
-      databagItem = Chef::DataBagItem.new
-      databagItem.data_bag("tinc_" + network)
-      databagItem.raw_data = databagItemIdeal
-      databagItem.save
-    end
-    only_if { databagItem == nil }
-  end
+#  databagItem = search("tinc_#{network}", 'id:' + node.name.gsub(".","DOT")).first
+#  # If databag doesn't exist, we create it with default values
+#  ruby_block "create databagItem" do
+#    block do
+#      databagItemIdeal = {
+#        "id" => node.name.gsub(".","DOT"),
+#        "name" => Tinc.attribute_value('name', network, node),
+#        "external_ipaddress" => Tinc.attribute_value('external_ipaddress', network, node),
+#        "subnets" => Tinc.attribute_value('subnets', network, node),
+#        "internal_ipaddress" => Tinc.attribute_value('internal_ipaddress', network, node),
+#        "public_key" => Tinc.attribute_value('public_key',network, node)
+#      }
+#      databagItem = Chef::DataBagItem.new
+#      databagItem.data_bag("tinc_" + network)
+#      databagItem.raw_data = databagItemIdeal
+#      databagItem.save
+#    end
+#    only_if { databagItem == nil }
+#  end
 
   directory "/etc/tinc/#{network}/hosts" do
     owner "root"
@@ -122,10 +122,34 @@ node['tinc']['net'].each do |network, conf|
     not_if { conf.has_key?('public_key') }
   end
 
-  search('tinc_' + network, "*:*") do |matching_node|
-    netname = matching_node['id'].gsub('DOT','.')
-    next if netname  == "default"
-    workingnode = Chef::Node.load(netname)
+  search_filter = "recipes:tinc AND tinc_net:#{network}"
+  case node['tinc']['select']
+  when 'attribute'
+    search_filter = "recipes:tinc AND tinc_net:#{network}"
+  when 'chef_environement'
+    search_filter = "chef_environment:#{node.chef_environment} AND recipes:tinc AND tinc_net:#{network}"
+  when 'role'
+    search_filter = "role:#{node['tinc']['role']}"
+  end
+
+  template "/etc/tinc/#{network}/hosts/#{Tinc.public_value('name', network, node, node)}" do
+    source "host.erb"
+    mode "0644"
+    owner "root"
+    group "root"
+    variables(
+      :ipaddress => Tinc.public_value('external_ipaddress', network, node, node),
+      :cipher => Tinc.public_value('cipher', network, node, node),
+      :digest => Tinc.public_value('digest', network, node, node),
+      :compression => Tinc.public_value('compression', network, node, node),
+      :subnets => Tinc.public_value('subnets', network, node, node),
+      :tcponly => Tinc.public_value('tcponly', network, node, node),
+      :public_key => Tinc.public_value('public_key',network, node, node)
+    )
+    notifies :run, "execute[reload tinc]"
+  end
+
+  search(:node, search_filter) do |workingnode|
     template "/etc/tinc/#{network}/hosts/#{Tinc.public_value('name', network, workingnode, node)}" do
       source "host.erb"
       mode "0644"
@@ -163,9 +187,9 @@ node['tinc']['net'].each do |network, conf|
       provider Chef::Provider::Service::Upstart
       notifies(:add, "ifconfig[#{conf[:internal_ipaddress]}]")
       action [:start]
-      end
+    end
   
-      ifconfig Tinc.conf_value('internal_ipaddress', network, node) do
+    ifconfig Tinc.conf_value('internal_ipaddress', network, node) do
       device Tinc.conf_value('interface', network, node)
       mask Tinc.conf_value('internal_netmask', network, node)
       # old command
