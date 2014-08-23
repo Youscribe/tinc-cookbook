@@ -11,6 +11,9 @@ default[:tinc][:net][:default][:compression] = "0"
 
 default[:tinc][:net][:default][:tcponly] = false
 
+default[:tinc][:config][:dns_nameservers] = "172.16.0.4"
+default[:tinc][:config][:dns_search] = "societe-publica.server"
+
 #default[:tinc][:net][:default][:internal_ipaddress] = "192.16.0.1"
 default[:tinc][:net][:default][:internal_netmask] = "255.255.255.0"
 
