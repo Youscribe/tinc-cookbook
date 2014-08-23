@@ -173,7 +173,8 @@ node['tinc']['net'].each do |network, conf|
       target Tinc.conf_value('internal_ipaddress', network, node)
       mask Tinc.conf_value('internal_netmask', network, node)
 #      mtu 1452
-      custom "tinc-net" => "#{network}", "dns-nameservers" => "172.16.0.4", "dns-search" => "societe-publica.server"
+      custom "tinc-net" => "#{network}", "dns-nameservers" => node['tinc']['config']['dns_nameservers'], 
+        "dns-search" => node['tinc']['config']['dns_search']
       #TODO my configuration :/ sorry, my bad, I have no good way "for the moment"
     end
   elsif node[:tinc][:init] != "none"
